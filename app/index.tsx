@@ -39,13 +39,12 @@ const customModel = {
   // decoderSource: `${URL_PREFIX}-bk-sdm-tiny/${VERSION_TAG}/vae/model.256.pte`,
 };
 
-const numSteps = 4; // Number of denoising steps
+const numSteps = 100; // Number of denoising steps
 
 function LLMScreen() {
   const [isTextInputFocused, setIsTextInputFocused] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [chatHistory, setChatHistory] = useState<ImageMessage[]>([]);
-  const [finalLLMResponse, setFinalLLMResponse] = useState('');
   const textInputRef = useRef<TextInput>(null);
   const finalLLMResponseRef = useRef('');
 
@@ -73,11 +72,9 @@ function LLMScreen() {
   useEffect(() => {
     if (textLLM.isGenerating) {
       // Clear final response when starting new generation
-      setFinalLLMResponse('');
       finalLLMResponseRef.current = '';
     } else if (!textLLM.isGenerating && textLLM.response) {
       // Set final response when generation is complete
-      setFinalLLMResponse(textLLM.response);
       finalLLMResponseRef.current = textLLM.response;
     }
   }, [textLLM.isGenerating, textLLM.response]);
@@ -173,7 +170,6 @@ function LLMScreen() {
       setChatHistory(prev => [...prev, assistantMessage]);
 
       // Clear the final response and reset step counter for next generation
-      setFinalLLMResponse('');
       finalLLMResponseRef.current = '';
       setCurrentGenerationStep(0);
     } catch (e) {
@@ -186,7 +182,6 @@ function LLMScreen() {
       setChatHistory(prev => [...prev, errorMessage]);
 
       // Clear the final response and reset step counter for next generation
-      setFinalLLMResponse('');
       finalLLMResponseRef.current = '';
       setCurrentGenerationStep(0);
     }
@@ -241,11 +236,11 @@ function LLMScreen() {
               style={{
                 ...styles.textInput,
                 borderColor: isTextInputFocused
-                  ? ColorPalette.blueDark
-                  : ColorPalette.blueLight,
+                  ? ColorPalette.accent
+                  : 'rgba(0, 212, 255, 0.3)',
               }}
               placeholder="Describe your meme idea..."
-              placeholderTextColor={'#C1C6E5'}
+              placeholderTextColor={ColorPalette.textMuted}
               multiline={true}
               ref={textInputRef}
               onChangeText={(text: string) => setUserInput(text)}
@@ -256,7 +251,7 @@ function LLMScreen() {
                 style={styles.sendChatTouchable}
                 onPress={sendMessage}
               >
-                <SendIcon height={24} width={24} padding={4} margin={8} />
+                <SendIcon height={24} width={24} padding={4} margin={8} fill={ColorPalette.accent} />
               </TouchableOpacity>
             )}
             {textLLM.isGenerating && (
@@ -266,7 +261,7 @@ function LLMScreen() {
                   if (textLLM.isGenerating) textLLM.interrupt();
                 }}
               >
-                <PauseIcon height={24} width={24} padding={4} margin={8} />
+                <PauseIcon height={24} width={24} padding={4} margin={8} fill={ColorPalette.accent} />
               </TouchableOpacity>
             )}
           </View>
@@ -281,8 +276,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: Platform.OS === 'android' ? 20 : 0,
   },
-  container: { flex: 1 },
-  chatContainer: { flex: 10, width: '100%' },
+  container: { 
+    flex: 1,
+    backgroundColor: ColorPalette.background,
+  },
+  chatContainer: { 
+    flex: 10, 
+    width: '100%',
+    backgroundColor: ColorPalette.background,
+  },
   helloMessageContainer: {
     flex: 10,
     width: '100%',
@@ -291,17 +293,18 @@ const styles = StyleSheet.create({
   },
   helloText: {
     fontFamily: 'medium',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: ColorPalette.primary,
+    marginBottom: 12,
+    color: ColorPalette.accent,
   },
   bottomHelloText: {
     fontFamily: 'regular',
     fontSize: 16,
     lineHeight: 28,
     textAlign: 'center',
-    color: ColorPalette.primary,
+    color: ColorPalette.textSecondary,
+    paddingHorizontal: 20,
   },
   bottomContainer: {
     height: 100,
@@ -310,16 +313,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 212, 255, 0.1)',
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
+    borderWidth: 1.5,
+    borderRadius: 24,
     lineHeight: 19.6,
     fontFamily: 'regular',
     fontSize: 14,
-    color: ColorPalette.primary,
-    padding: 16,
+    color: ColorPalette.textPrimary,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   sendChatTouchable: {
     height: '100%',

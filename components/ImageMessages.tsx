@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 14,
     lineHeight: 19.6,
-    color: ColorPalette.primary,
+    color: ColorPalette.textSecondary,
     fontFamily: 'regular',
     marginTop: 6,
   },

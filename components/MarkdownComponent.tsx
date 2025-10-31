@@ -12,7 +12,7 @@ export default function MarkdownComponent({ text }: MarkdownComponentProps) {
     <Markdown
       style={{
         body: {
-          color: ColorPalette.primary,
+          color: ColorPalette.textPrimary,
           fontFamily: 'regular',
           lineHeight: 19.6,
           fontSize: fontSize,

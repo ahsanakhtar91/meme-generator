@@ -21,10 +21,23 @@ export default function _layout() {
     <Drawer
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
-        drawerActiveTintColor: ColorPalette.primary,
-        drawerInactiveTintColor: '#888',
-        headerTintColor: ColorPalette.primary,
-        headerTitleStyle: { color: ColorPalette.primary },
+        drawerActiveTintColor: ColorPalette.accent,
+        drawerInactiveTintColor: ColorPalette.textMuted,
+        drawerStyle: {
+          backgroundColor: ColorPalette.backgroundLight,
+        },
+        headerTintColor: ColorPalette.textSecondary,
+        headerStyle: {
+          backgroundColor: ColorPalette.background,
+          shadowColor: 'transparent',
+          elevation: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: 'rgba(0, 212, 255, 0.1)',
+        },
+        headerTitleStyle: { 
+          color: ColorPalette.textSecondary,
+          fontWeight: '600',
+        },
       }}
     >
       <Drawer.Screen
@@ -32,7 +45,10 @@ export default function _layout() {
         options={{
           drawerLabel: 'Meme Generator',
           title: 'Meme Generator',
-          headerTitleStyle: { color: ColorPalette.primary },
+          headerTitleStyle: { 
+            color: ColorPalette.textSecondary,
+            fontWeight: '600',
+          },
         }}
       />
     </Drawer>
