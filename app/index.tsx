@@ -61,7 +61,7 @@ function LLMScreen() {
       textLLM.configure({
         chatConfig: {
           contextWindowLength: 2048,
-          systemPrompt: 'You are a creative meme text generator. Generate funny and catchy meme text based on the given prompt. Always respond with exactly two short lines separated by a pipe character (|). The first line is for the top of the meme, the second for the bottom. Keep each line under 6 words. Be witty, humorous, and relevant to the prompt. Example response format: "WHEN YOU REALIZE|IT\'S MONDAY AGAIN"',
+          systemPrompt: 'You are a creative meme text generator. Generate funny and catchy meme text based on the given prompt. Always respond with ONLY two short lines separated by a SINGLE pipe character (|). The first line is for the top of the meme, the second for the bottom. Keep each line under 6 words. Be witty, humorous, and relevant to the prompt. Do not include any extra pipes or formatting. Example response: WHEN YOU REALIZE|ITS MONDAY AGAIN',
           initialMessageHistory: [],
         },
       });
@@ -134,12 +134,22 @@ function LLMScreen() {
       let bottomText = '';
 
       if (memeTextResponse && memeTextResponse.includes('|')) {
-        const parts = memeTextResponse.split('|');
-        topText = parts[0].trim().replace(/"/g, '').toUpperCase();
-        bottomText = parts[1].trim().replace(/"/g, '').toUpperCase();
+        // Split by pipe and filter out empty parts
+        const parts = memeTextResponse.split('|')
+          .map(part => part.trim())
+          .filter(part => part.length > 0);
+        
+        if (parts.length >= 2) {
+          // Take first non-empty part as top text, last as bottom text
+          topText = parts[0].replace(/["|']/g, '').toUpperCase();
+          bottomText = parts[parts.length - 1].replace(/["|']/g, '').toUpperCase();
+        } else if (parts.length === 1) {
+          // If only one part, use it as top text
+          topText = parts[0].replace(/["|']/g, '').toUpperCase();
+        }
       } else if (memeTextResponse) {
         // If no pipe separator, use the whole response as top text
-        const cleanText = memeTextResponse.trim().replace(/"/g, '');
+        const cleanText = memeTextResponse.trim().replace(/["|']/g, '');
         const words = cleanText.split(' ');
         if (words.length > 6) {
           topText = words.slice(0, Math.ceil(words.length / 2)).join(' ').toUpperCase();
