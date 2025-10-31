@@ -1,7 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { FlatList, StyleSheet, View, Text } from 'react-native';
 import AnimatedChatLoading from './AnimatedChatLoading';
-import LlamaIcon from '../assets/icons/llama_icon.svg';
 import ColorPalette from '../colors';
 import ImageMessageItem, { ImageMessage } from './ImageMessageItem';
 
@@ -9,14 +8,20 @@ interface ImageMessagesComponentProps {
   chatHistory: ImageMessage[];
   llmResponse: string;
   isGenerating: boolean;
-  deleteMessage: (index: number) => void;
+  isTextGenerating?: boolean;
+  isImageGenerating?: boolean;
+  currentStep?: number;
+  totalSteps?: number;
 }
 
 export default function ImageMessages({
   chatHistory,
   llmResponse,
   isGenerating,
-  deleteMessage,
+  isTextGenerating,
+  isImageGenerating,
+  currentStep,
+  totalSteps,
 }: ImageMessagesComponentProps) {
   const flatListRef = useRef<FlatList>(null);
 
@@ -29,27 +34,29 @@ export default function ImageMessages({
     }
   }, [chatHistory.length, isGenerating]);
 
-  const renderItem = ({ item, index }: { item: ImageMessage; index: number }) => (
-    <ImageMessageItem
-      message={item}
-      deleteMessage={() => deleteMessage(index)}
-    />
+  const renderItem = ({ item }: { item: ImageMessage }) => (
+    <ImageMessageItem message={item} />
   );
 
   const renderFooter = () => {
     if (!isGenerating) return null;
 
+    let statusMessage = '';
+    if (isTextGenerating) {
+      statusMessage = llmResponse || 'Generating meme text...';
+    } else if (isImageGenerating) {
+      const stepInfo = currentStep && totalSteps ? ` ${currentStep}/${totalSteps}` : '';
+      statusMessage = `Generating image...${stepInfo}`;
+    }
+
     return (
       <View style={styles.aiMessage}>
-        <View style={styles.aiMessageIconContainer}>
-          <LlamaIcon width={24} height={24} />
-        </View>
-        {!llmResponse ? (
+        {!statusMessage ? (
           <View style={styles.messageLoadingContainer}>
             <AnimatedChatLoading />
           </View>
         ) : (
-          <Text style={styles.messageText}> {llmResponse.trim()}</Text>
+          <Text style={styles.messageText}>{statusMessage.trim()}</Text>
         )}
       </View>
     );
@@ -84,19 +91,11 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     alignSelf: 'flex-start',
     marginVertical: 8,
+    paddingHorizontal: 12,
   },
   messageLoadingContainer: { 
     width: 28,
     marginTop: 4,
-  },
-  aiMessageIconContainer: {
-    backgroundColor: ColorPalette.seaBlueLight,
-    height: 32,
-    width: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    marginHorizontal: 7,
   },
   messageText: {
     fontSize: 14,

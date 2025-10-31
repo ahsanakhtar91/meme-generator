@@ -2,75 +2,67 @@ import React, { memo } from 'react';
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
   Text,
-  Platform,
   Image,
   Dimensions,
 } from 'react-native';
 import MarkdownComponent from './MarkdownComponent';
-import LlamaIcon from '../assets/icons/llama_icon.svg';
 import ColorPalette from '../colors';
 
 export interface ImageMessage {
   role: 'user' | 'assistant';
   content: string;
   image?: string; // Base64 image data
+  topText?: string; // Meme text for top of image
+  bottomText?: string; // Meme text for bottom of image
 }
 
 interface ImageMessageItemProps {
   message: ImageMessage;
-  deleteMessage: () => void;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const ImageMessageItem = memo(({ message, deleteMessage }: ImageMessageItemProps) => {
+const ImageMessageItem = memo(({ message }: ImageMessageItemProps) => {
   return (
     <View
       style={
         message.role === 'assistant' ? styles.aiMessage : styles.userMessage
       }
     >
-      {message.role === 'assistant' && (
-        <View style={styles.aiMessageIconContainer}>
-          <LlamaIcon width={24} height={24} />
-        </View>
-      )}
       <View style={styles.messageContent}>
-        {message.content && <MarkdownComponent text={message.content} />}
+        {message.content && !message.image && <MarkdownComponent text={message.content} />}
         {message.image && (
-          <Image 
-            source={{ uri: message.image }}
-            style={styles.generatedImage}
-            resizeMode="contain"
-          />
+          <>
+            {(message.topText || message.bottomText) && (
+              <View style={styles.memeTextDisplay}>
+                <Text style={styles.memeTextLabel}>Meme Text:</Text>
+                <Text style={styles.memeTextContent}>
+                  {message.topText && message.bottomText 
+                    ? `${message.topText} ${message.bottomText}`
+                    : message.topText || message.bottomText}
+                </Text>
+              </View>
+            )}
+            <View style={styles.imageContainer}>
+              <Image 
+                source={{ uri: message.image }}
+                style={styles.generatedImage}
+                resizeMode="contain"
+              />
+              {message.topText && (
+                <Text style={styles.topMemeText}>{message.topText}</Text>
+              )}
+              {message.bottomText && (
+                <Text style={styles.bottomMemeText}>{message.bottomText}</Text>
+              )}
+            </View>
+          </>
         )}
       </View>
-      <CloseButton deleteMessage={deleteMessage} role={message.role} />
     </View>
   );
 });
-
-const CloseButton = ({
-  deleteMessage,
-  role,
-}: {
-  deleteMessage: () => void;
-  role: string;
-}) => {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.closeButton,
-        role === 'assistant' ? styles.closeButtonRight : styles.closeButtonLeft,
-      ]}
-      onPress={deleteMessage}
-    >
-      <Text style={styles.buttonText}>✕</Text>
-    </TouchableOpacity>
-  );
-};
 
 export default ImageMessageItem;
 
@@ -81,6 +73,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginVertical: 8,
     alignItems: 'flex-start',
+    paddingHorizontal: 12,
   },
   userMessage: {
     flexDirection: 'row-reverse',
@@ -97,37 +90,61 @@ const styles = StyleSheet.create({
   messageContent: {
     flex: 1,
   },
-  generatedImage: {
+  memeTextDisplay: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  memeTextLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: ColorPalette.primary,
+    marginBottom: 4,
+    fontFamily: 'medium',
+  },
+  memeTextContent: {
+    fontSize: 14,
+    color: ColorPalette.primary,
+    lineHeight: 20,
+    fontFamily: 'regular',
+  },
+  imageContainer: {
+    position: 'relative',
     width: screenWidth * 0.6,
     height: screenWidth * 0.6,
+  },
+  generatedImage: {
+    width: '100%',
+    height: '100%',
     borderRadius: 8,
-    marginTop: 8,
   },
-  aiMessageIconContainer: {
-    backgroundColor: ColorPalette.seaBlueLight,
-    height: 32,
-    width: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    marginHorizontal: 7,
+  topMemeText: {
+    position: 'absolute',
+    top: 10,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    textShadowColor: 'black',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 3,
+    paddingHorizontal: 10,
   },
-  closeButton: {
-    borderRadius: 11,
-    backgroundColor: ColorPalette.blueLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 22,
-    height: 22,
-  },
-  closeButtonRight: {
-    marginLeft: 8,
-  },
-  closeButtonLeft: {
-    marginRight: 8,
-  },
-  buttonText: {
-    fontSize: Platform.OS === 'ios' ? 16 : 14,
-    color: '#000',
+  bottomMemeText: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    textShadowColor: 'black',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 3,
+    paddingHorizontal: 10,
   },
 });

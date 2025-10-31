@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -17,7 +17,6 @@ import ColorPalette from '../colors';
 import ImageMessages from '../components/ImageMessages';
 import { ImageMessage } from '../components/ImageMessageItem';
 import { useIsFocused } from '@react-navigation/native';
-import { GeneratingContext } from '../context';
 import Spinner from '../components/Spinner';
 
 export default function LLMScreenWrapper() {
@@ -40,22 +39,22 @@ const customModel = {
   // decoderSource: `${URL_PREFIX}-bk-sdm-tiny/${VERSION_TAG}/vae/model.256.pte`,
 };
 
-const numSteps = 100; // Number of denoising steps
+const numSteps = 4; // Number of denoising steps
 
 function LLMScreen() {
   const [isTextInputFocused, setIsTextInputFocused] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [chatHistory, setChatHistory] = useState<ImageMessage[]>([]);
+  const [finalLLMResponse, setFinalLLMResponse] = useState('');
   const textInputRef = useRef<TextInput>(null);
-  const { setGlobalGenerating, setGenerationProgress } = useContext(GeneratingContext);
+  const finalLLMResponseRef = useRef('');
 
   // Total steps will be determined by the numSteps parameter in generate()
   const [totalGenerationSteps, setTotalGenerationSteps] = useState(numSteps); // Default to 16 as per your generate call
+  const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
 
   // Initialize LLM for generating meme text
   const textLLM = useLLM({ model: LLAMA3_2_1B_SPINQUANT });
-
-  console.log('textLLM', textLLM.response);
 
   // Configure LLM with system prompt for meme generation
   useEffect(() => {
@@ -70,13 +69,26 @@ function LLMScreen() {
     }
   }, [textLLM.isReady]);
 
+  // Track LLM response and generation state
+  useEffect(() => {
+    if (textLLM.isGenerating) {
+      // Clear final response when starting new generation
+      setFinalLLMResponse('');
+      finalLLMResponseRef.current = '';
+    } else if (!textLLM.isGenerating && textLLM.response) {
+      // Set final response when generation is complete
+      setFinalLLMResponse(textLLM.response);
+      finalLLMResponseRef.current = textLLM.response;
+    }
+  }, [textLLM.isGenerating, textLLM.response]);
+
   // Initialize text-to-image model with custom configuration and inference callback
   const imageModel = useTextToImage({
     model: BK_SDM_TINY_VPRED_256,
     inferenceCallback: (stepIdx: number) => {
       // Track the generation progress
-      setGenerationProgress(stepIdx, totalGenerationSteps);
-      console.log(`Generation step: ${stepIdx}/${totalGenerationSteps}`);
+      setCurrentGenerationStep(stepIdx);
+      console.log(`Image Generation Step ${stepIdx}/${totalGenerationSteps}`);
     }
   });
 
@@ -94,10 +106,6 @@ function LLMScreen() {
     console.log('Text LLM downloadProgress', textLLM.downloadProgress * 100);
   }, [imageModel.downloadProgress, textLLM.downloadProgress]);
 
-  useEffect(() => {
-    setGlobalGenerating(imageModel.isGenerating || textLLM.isGenerating);
-  }, [imageModel.isGenerating, textLLM.isGenerating, setGlobalGenerating]);
-
   const sendMessage = async () => {
     const prompt = userInput.trim();
     if (!prompt) return;
@@ -113,10 +121,16 @@ function LLMScreen() {
     textInputRef.current?.clear();
 
     try {
-      textLLM.sendMessage(prompt);
+      // Start text generation
+      await textLLM.sendMessage(prompt);
 
-      const memeTextResponse = textLLM.response;
-      console.log('Generated meme text:', textLLM.response);
+      // Wait for text generation to complete and final response to be set
+      while (textLLM.isGenerating || !finalLLMResponseRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      const memeTextResponse = finalLLMResponseRef.current;
+      console.log('Generated meme text:', memeTextResponse);
 
       // Parse the meme text response (expecting format: "TOP TEXT|BOTTOM TEXT")
       let topText = '';
@@ -124,40 +138,44 @@ function LLMScreen() {
 
       if (memeTextResponse && memeTextResponse.includes('|')) {
         const parts = memeTextResponse.split('|');
-        topText = parts[0].trim().replace(/"/g, '');
-        bottomText = parts[1].trim().replace(/"/g, '');
+        topText = parts[0].trim().replace(/"/g, '').toUpperCase();
+        bottomText = parts[1].trim().replace(/"/g, '').toUpperCase();
       } else if (memeTextResponse) {
         // If no pipe separator, use the whole response as top text
         const cleanText = memeTextResponse.trim().replace(/"/g, '');
         const words = cleanText.split(' ');
         if (words.length > 6) {
-          topText = words.slice(0, Math.ceil(words.length / 2)).join(' ');
-          bottomText = words.slice(Math.ceil(words.length / 2)).join(' ');
+          topText = words.slice(0, Math.ceil(words.length / 2)).join(' ').toUpperCase();
+          bottomText = words.slice(Math.ceil(words.length / 2)).join(' ').toUpperCase();
         } else {
-          topText = cleanText;
+          topText = cleanText.toUpperCase();
         }
       }
 
       // Reset generation step counter
       setTotalGenerationSteps(numSteps);
-      setGenerationProgress(0, numSteps);
+      setCurrentGenerationStep(0);
 
       // Generate image with custom parameters
       // Parameters: prompt, imageSize, numSteps, seed
       const image = await imageModel.generate("Hi, you are a helpful assistant, generate an image as per this prompt:\n" + prompt, 256, numSteps, -1);
       console.log('Generated image successfully');
 
-      // Add assistant message with generated meme text
+      // Add assistant message with generated meme text and image
       const assistantMessage: ImageMessage = {
         role: 'assistant',
-        content: memeTextResponse || 'Generated meme text', // Show the generated text
-        image: `data:image/png;base64,${image}`, // Uncomment when using image model
-        // topText: topText,
-        // bottomText: bottomText,
+        content: '', // Don't show raw response, we'll show formatted text instead
+        image: `data:image/png;base64,${image}`,
+        topText: topText,
+        bottomText: bottomText,
       };
 
       setChatHistory(prev => [...prev, assistantMessage]);
-      setGenerationProgress(0, 0); // Reset progress in context
+
+      // Clear the final response and reset step counter for next generation
+      setFinalLLMResponse('');
+      finalLLMResponseRef.current = '';
+      setCurrentGenerationStep(0);
     } catch (e) {
       console.error('Error generating:', e);
       // Add error message to chat
@@ -166,18 +184,19 @@ function LLMScreen() {
         content: `Error generating: ${e instanceof Error ? e.message : 'Unknown error'}`,
       };
       setChatHistory(prev => [...prev, errorMessage]);
-      setGenerationProgress(0, 0); // Reset progress in context
-    }
-  };
 
-  const deleteMessage = (index: number) => {
-    setChatHistory(prev => prev.filter((_, i) => i !== index));
+      // Clear the final response and reset step counter for next generation
+      setFinalLLMResponse('');
+      finalLLMResponseRef.current = '';
+      setCurrentGenerationStep(0);
+    }
   };
 
   return (!textLLM.isReady || !imageModel.isReady) ? (
     <Spinner
       visible
-      textContent={`Loading models, please wait! \n\nImage Model: ${(imageModel.downloadProgress * 100).toFixed(0)}%\nText Model: ${(textLLM.downloadProgress * 100).toFixed(0)}%`}
+      imageProgress={imageModel.downloadProgress * 100}
+      textProgress={textLLM.downloadProgress * 100}
     />
   ) : (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -194,15 +213,21 @@ function LLMScreen() {
               <View style={styles.helloMessageContainer}>
                 <Text style={styles.helloText}>Meme Generator</Text>
                 <Text style={styles.bottomHelloText}>
-                  Enter a prompt to generate a meme with AI-generated text and image
+                  Enter a prompt to generate a meme
+                </Text>
+                <Text style={styles.bottomHelloText}>
+                  with AI-generated text and image
                 </Text>
               </View>
             ) : (
               <ImageMessages
                 chatHistory={chatHistory}
                 llmResponse={textLLM.response}
-                isGenerating={textLLM.isGenerating}
-                deleteMessage={deleteMessage}
+                isGenerating={textLLM.isGenerating || imageModel.isGenerating}
+                isTextGenerating={textLLM.isGenerating}
+                isImageGenerating={imageModel.isGenerating}
+                currentStep={currentGenerationStep}
+                totalSteps={totalGenerationSteps}
               />
             )}
           </View>
@@ -266,7 +291,9 @@ const styles = StyleSheet.create({
   },
   helloText: {
     fontFamily: 'medium',
-    fontSize: 23,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
     color: ColorPalette.primary,
   },
   bottomHelloText: {
