@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import SendIcon from '../assets/icons/send_icon.svg';
-import { useLLM, useTextToImage, BK_SDM_TINY_VPRED_256, LLAMA3_2_1B_SPINQUANT } from 'react-native-executorch';
+import { useLLM, useTextToImage, BK_SDM_TINY_VPRED_512, LLAMA3_2_1B_SPINQUANT } from 'react-native-executorch';
 import PauseIcon from '../assets/icons/pause_icon.svg';
 import ColorPalette from '../colors';
 import ImageMessages from '../components/ImageMessages';
@@ -39,7 +39,7 @@ const customModel = {
   // decoderSource: `${URL_PREFIX}-bk-sdm-tiny/${VERSION_TAG}/vae/model.256.pte`,
 };
 
-const numSteps = 100; // Number of denoising steps
+const numSteps = 10; // Number of denoising steps
 
 function LLMScreen() {
   const [isTextInputFocused, setIsTextInputFocused] = useState(false);
@@ -81,7 +81,7 @@ function LLMScreen() {
 
   // Initialize text-to-image model with custom configuration and inference callback
   const imageModel = useTextToImage({
-    model: BK_SDM_TINY_VPRED_256,
+    model: BK_SDM_TINY_VPRED_512,
     inferenceCallback: (stepIdx: number) => {
       // Track the generation progress
       setCurrentGenerationStep(stepIdx);
@@ -165,7 +165,7 @@ function LLMScreen() {
 
       // Generate image with custom parameters
       // Parameters: prompt, imageSize, numSteps, seed
-      const image = await imageModel.generate("Hi, you are a helpful assistant, generate an image as per this prompt:\n" + prompt, 256, numSteps, -1);
+      const image = await imageModel.generate(prompt, 512, numSteps, -1);
       console.log('Generated image successfully');
 
       // Add assistant message with generated meme text and image
