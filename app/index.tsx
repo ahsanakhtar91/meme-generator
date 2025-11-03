@@ -24,10 +24,11 @@ export default function LLMScreenWrapper() {
   return isFocused ? <LLMScreen /> : null;
 }
 
-const URL_PREFIX = 'https://huggingface.co/software-mansion/react-native-executorch';
 // const VERSION_TAG = 'resolve/v0.5.0';
-const VERSION_TAG = 'resolve/main';
+// const URL_PREFIX = 'https://huggingface.co/software-mansion/react-native-executorch';
+// const VERSION_TAG = 'resolve/main';
 
+/*
 const customModel = {
   // schedulerSource: require('./scheduler_config.json'), // If scheduler_config needs to be updated
   schedulerSource: `${URL_PREFIX}-bk-sdm-tiny/${VERSION_TAG}/scheduler/scheduler_config.json`, // https://huggingface.co/software-mansion/react-native-executorch-bk-sdm-tiny/resolve/main/scheduler/scheduler_config.json
@@ -38,6 +39,7 @@ const customModel = {
   // unetSource: `${URL_PREFIX}-bk-sdm-tiny/${VERSION_TAG}/unet/model.256.pte`,
   // decoderSource: `${URL_PREFIX}-bk-sdm-tiny/${VERSION_TAG}/vae/model.256.pte`,
 };
+*/
 
 const numSteps = 10; // Number of denoising steps
 
@@ -138,7 +140,7 @@ function LLMScreen() {
         const parts = memeTextResponse.split('|')
           .map(part => part.trim())
           .filter(part => part.length > 0);
-        
+
         if (parts.length >= 2) {
           // Take first non-empty part as top text, last as bottom text
           topText = parts[0].replace(/["|']/g, '').toUpperCase();
@@ -286,12 +288,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: Platform.OS === 'android' ? 20 : 0,
   },
-  container: { 
+  container: {
     flex: 1,
     backgroundColor: ColorPalette.background,
   },
-  chatContainer: { 
-    flex: 10, 
+  chatContainer: {
+    flex: 10,
     width: '100%',
     backgroundColor: ColorPalette.background,
   },
